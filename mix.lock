@@ -1,3 +1,5 @@
 %{
   "hivex_proxy_client": {:git, "https://github.com/revolko/hivex_proxy.git", "13ac024fe4a471335ffb137364d33cd22f681274", [subdir: "/hivex_proxy_client"]},
+  "docker_ex": {:hex, :docker_ex, "0.1.0", "3afa6a8eda3e6d6dcd12f482b9c947c160f3d576c0ab31e859e2b5c25829468c", [:mix], [{:jason, "~> 1.4", [hex: :jason, repo: "hexpm", optional: false]}], "hexpm", "8930c65ce28c8148a8048ff0fcd85ae9afd159a8dc444538bb164fb6ae9bf460"},
+  "jason": {:hex, :jason, "1.4.4", "b9226785a9aa77b6857ca22832cffa5d5011a667207eb2a0ad56adb5db443b8a", [:mix], [{:decimal, "~> 1.0 or ~> 2.0", [hex: :decimal, repo: "hexpm", optional: true]}], "hexpm", "c5eb0cab91f094599f94d55bc63409236a8ec69a21a67814529e8d5f6cc90b3b"},
 }

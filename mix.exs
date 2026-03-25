@@ -22,7 +22,8 @@ defmodule HivexWorker.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:hivex_proxy_client, github: "revolko/hivex_proxy", subdir: "/hivex_proxy_client"}
+      {:hivex_proxy_client, github: "revolko/hivex_proxy", subdir: "/hivex_proxy_client"},
+      {:docker_ex, "~> 0.1.0"}
     ]
   end
 end

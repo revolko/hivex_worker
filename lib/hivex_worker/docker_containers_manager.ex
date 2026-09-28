@@ -52,8 +52,8 @@ defmodule HivexWorker.DockerContainersManager do
       Image: image_name,
       HostConfig: %{
         "PortBindings" => %{
-          container_port => [
-            %{"HostIp" => host_ip, "HostPort" => exposed_port}
+          "#{container_port}/tcp" => [
+            %{"HostIp" => host_ip, "HostPort" => "#{exposed_port}/tcp"}
           ]
         }
       },
@@ -64,12 +64,19 @@ defmodule HivexWorker.DockerContainersManager do
   end
 
   @doc """
-  Start Docker container.
+  Starts Docker container.
 
-  TODO
+  ## Parameters
+
+   * `container_id` - name or ID of the container
+
+  ## Examples
+
+      iex> HivexWorker.DockerContainersManager.start_container("name")
+      {:ok, ""}
   """
-  def start_container() do
-    GenServer.call(__MODULE__, {:start, "TODO"})
+  def start_container(container_id) do
+    GenServer.call(__MODULE__, {:start, container_id})
   end
 
   @doc """
@@ -82,12 +89,19 @@ defmodule HivexWorker.DockerContainersManager do
   end
 
   @doc """
-  Remove Docker container.
+  Deletes Docker container.
 
-  TODO
+  ## Parameters
+
+   * `container_id` - name or ID of the container
+
+  ## Examples
+
+      iex> HivexWorker.DockerContainersManager.start_container("name")
+      {:ok, ""}
   """
-  def remove_container() do
-    GenServer.call(__MODULE__, {:remove, "TODO"})
+  def delete_container(container_id, opts \\ []) do
+    GenServer.call(__MODULE__, {:delete, container_id, opts})
   end
 
   @impl true
@@ -98,6 +112,22 @@ defmodule HivexWorker.DockerContainersManager do
   @impl true
   def handle_call({:create, [name: name, body: create_body]}, _from, state) do
     case Containers.create_container(create_body, name: name) do
+      {:ok, id} -> {:reply, {:ok, id}, state}
+      {:error, error} -> {:reply, {:error, error}, state}
+    end
+  end
+
+  @impl true
+  def handle_call({:start, container_id}, _from, state) do
+    case Containers.start_container(container_id) do
+      {:ok, id} -> {:reply, {:ok, id}, state}
+      {:error, error} -> {:reply, {:error, error}, state}
+    end
+  end
+
+  @impl true
+  def handle_call({:delete, container_id, opts}, _from, state) do
+    case Containers.delete_container(container_id, opts) do
       {:ok, id} -> {:reply, {:ok, id}, state}
       {:error, error} -> {:reply, {:error, error}, state}
     end

@@ -15,17 +15,32 @@ defmodule HivexWorker.Handler do
 
   @doc """
   Starts a container and creates hivex proxy tunnel for it.
+
+  ## Parameters
+
+   * `name` - name of the container
+   * `image_name` - image name
+   * `container_port` - internal container port
+   * `exposed_port` - externa (host) port mapped to the container
+   * `proxy_port` - proxy server listener port
   """
-  def start_container() do
-    dummy_server = %HivexProxyClient.Server{ip: :localhost, port: 4050, proxy_listener_port: 8080}
-    :ok = GenServer.call(__MODULE__, {:start_container, "dummy", dummy_server})
+  def start_container(name, image_name, container_port, exposed_port, proxy_port, opts \\ []) do
+    :ok =
+      GenServer.call(
+        __MODULE__,
+        {:start_container, name, image_name, container_port, exposed_port, proxy_port, opts}
+      )
   end
 
   @doc """
   Stops and removes a container and kills its hivex proxy tunnel.
+
+  ## Parameters
+
+   * `container_id` - name or ID of the container
   """
-  def remove_container() do
-    :ok = GenServer.call(__MODULE__, {:remove_container, "dummy"})
+  def delete_container(container_id) do
+    :ok = GenServer.call(__MODULE__, {:delete_container, container_id})
   end
 
   @impl true
@@ -34,27 +49,56 @@ defmodule HivexWorker.Handler do
   end
 
   @impl true
-  def handle_call({:start_container, name, %HivexProxyClient.Server{} = server}, _from, state) do
-    Logger.debug(message: "Starting a new container", name: name, server: server)
-    HivexWorker.DockerContainersManager.create_container()
-    HivexWorker.DockerContainersManager.start_container()
-    {:ok, pid} = HivexProxyClient.ConnectionsSupervisor.register_server(server)
+  def handle_call(
+        {:start_container, name, image_name, container_port, exposed_port, proxy_port, opts},
+        _from,
+        state
+      ) do
+    Logger.debug(
+      message: "Starting a new container",
+      name: name,
+      image: image_name,
+      container_port: container_port,
+      exposed_port: exposed_port,
+      proxy_port: proxy_port
+    )
 
-    servers = Map.put(state.servers, name, pid)
-    state = %{state | servers: servers}
-    {:reply, :ok, state}
+    server = %HivexProxyClient.Server{
+      ip: :localhost,
+      port: exposed_port,
+      proxy_listener_port: proxy_port
+    }
+
+    with {:ok, %{"Id" => container_id}} <-
+           HivexWorker.DockerContainersManager.create_container(
+             name,
+             image_name,
+             container_port,
+             exposed_port,
+             opts
+           ),
+         {:ok, _} <- HivexWorker.DockerContainersManager.start_container(container_id),
+         {:ok, pid} <- HivexProxyClient.ConnectionsSupervisor.register_server(server) do
+      servers = Map.put(state.servers, name, pid)
+      state = %{state | servers: servers}
+      {:reply, :ok, state}
+    else
+      {:error, reason} -> {:reply, {:error, reason}, state}
+    end
   end
 
   @impl true
-  def handle_call({:remove_container, name}, _from, state) do
+  def handle_call({:delete_container, name}, _from, state) do
     Logger.debug(message: "Stopping container", name: name)
 
     {tunnel_client_pid, servers} = Map.pop(state.servers, name)
-    HivexWorker.DockerContainersManager.stop_container()
-    HivexWorker.DockerContainersManager.remove_container()
-    HivexProxyClient.ConnectionsSupervisor.deregister_server(tunnel_client_pid)
 
-    state = %{state | servers: servers}
-    {:reply, :ok, state}
+    with {:ok, _} <- HivexWorker.DockerContainersManager.delete_container(name, force: true),
+         :ok <- HivexProxyClient.ConnectionsSupervisor.deregister_server(tunnel_client_pid) do
+      state = %{state | servers: servers}
+      {:reply, :ok, state}
+    else
+      {:error, reason} -> {:reply, {:error, reason}, state}
+    end
   end
 end

@@ -1,24 +1,12 @@
 defmodule HivexWorker.DockerContainersManager do
   @moduledoc """
   Docker containers manager.
-
-  A GenServer responsible for managing Docker containers on the local machine.
-  Managing in this context means creating, starting, stopping and removing
-  containers.
-
-  TODO: which calls make sense to have async and which not.
   """
-
-  use GenServer
 
   alias DockerEx.Containers
 
-  def start_link(default) do
-    GenServer.start_link(__MODULE__, default, name: __MODULE__)
-  end
-
   @doc """
-  Create Docker container.
+  Creates Docker container.
 
   ## Parameters
 
@@ -31,11 +19,10 @@ defmodule HivexWorker.DockerContainersManager do
 
    * `env` - list of environment variables passed to the container
    * `host_ip` - IP address on which the container listens on. Default: 127.0.0.1
-   * `timeout` - Overrides GenServer default timeout -- to handle longer Docker API response
 
   ## Examples
 
-      iex> HivexWorker.DockerContainersManager.create_container("name", "fedora", "8080/tcp", "8080/tcp")
+      iex> HivexWorker.DockerContainersManager.create_container("name", "fedora", 8080, 8080)
       {:ok,
        %{
          "Id" => "f7f0348d9566076684d01602f99f2826e3864045fceb94dd1b7e6f75d9c565cb",
@@ -46,60 +33,71 @@ defmodule HivexWorker.DockerContainersManager do
   def create_container(name, image_name, container_port, exposed_port, opts \\ []) do
     env = Keyword.get(opts, :env, [])
     host_ip = Keyword.get(opts, :host_ip, "127.0.0.1")
-    timeout = Keyword.get(opts, :timeout, 30_000)
 
     create_body = %Containers.CreateContainer{
       Image: image_name,
       HostConfig: %{
         "PortBindings" => %{
-          container_port => [
-            %{"HostIp" => host_ip, "HostPort" => exposed_port}
+          "#{container_port}" => [
+            %{"HostIp" => host_ip, "HostPort" => "#{exposed_port}"}
           ]
         }
       },
       Env: env
     }
 
-    GenServer.call(__MODULE__, {:create, [name: name, body: create_body]}, timeout)
+    Containers.create_container(create_body, name: name)
   end
 
   @doc """
-  Start Docker container.
+  Starts Docker container.
 
-  TODO
+  ## Parameters
+
+   * `container_id` - name or ID of the container
+
+  ## Examples
+
+      iex> HivexWorker.DockerContainersManager.start_container("name")
+      {:ok, ""}
   """
-  def start_container() do
-    GenServer.call(__MODULE__, {:start, "TODO"})
+  def start_container(container_id) do
+    Containers.start_container(container_id)
   end
 
   @doc """
-  Stop Docker container.
+  Deletes Docker container.
 
-  TODO
+  ## Parameters
+
+   * `container_id` - name or ID of the container
+
+  ## Examples
+
+      iex> HivexWorker.DockerContainersManager.delete_container("name")
+      {:ok, ""}
   """
-  def stop_container() do
-    GenServer.call(__MODULE__, {:stop, "TODO"})
+  def delete_container(container_id, opts \\ []) do
+    Containers.delete_container(container_id, opts)
   end
 
   @doc """
-  Remove Docker container.
+  Inspects given container and returns its ID.
 
-  TODO
+  ## Parameters
+
+   * `name` - name or ID of the container
+
+
+  ## Examples
+
+      iex> HivexWorker.DockerContainersManager.get_container_id("name")
+      {:ok, "the docker ID"}
   """
-  def remove_container() do
-    GenServer.call(__MODULE__, {:remove, "TODO"})
-  end
-
-  @impl true
-  def init(state) do
-    {:ok, state}
-  end
-
-  @impl true
-  def handle_call({:create, [name: name, body: create_body]}, _from, state) do
-    case Containers.create_container(create_body, name: name) do
-      {:ok, id} -> {:reply, {:ok, id}, state}
-      {:error, error} -> {:reply, {:error, error}, state}
+  def get_container_id(name) do
+    case Containers.inspect_container(name) do
+      {:ok, container_map} -> {:ok, Map.get(container_map, "Id")}
+      error -> error
     end
   end
 end

@@ -6,7 +6,8 @@ defmodule HivexWorker.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      HivexWorker.DockerContainersManager
+      HivexWorker.DockerContainersManager,
+      HivexWorker.Handler
     ]
 
     opts = [strategy: :one_for_one, name: HivexWorker.Supervisor]

@@ -22,3 +22,6 @@ erl_crash.dump
 # Ignore package tarball (built via "mix hex.build").
 hivex_worker-*.tar
 
+# custom
+# ignore .env configuration
+.env*

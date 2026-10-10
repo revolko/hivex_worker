@@ -23,7 +23,8 @@ defmodule HivexWorker.MixProject do
   defp deps do
     [
       {:hivex_proxy_client, github: "revolko/hivex_proxy", subdir: "/hivex_proxy_client"},
-      {:docker_ex, "~> 0.1.0"}
+      {:docker_ex, "~> 0.1.0"},
+      {:slipstream, "~> 1.0"}
     ]
   end
 end

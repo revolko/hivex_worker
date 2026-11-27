@@ -9,10 +9,28 @@ defmodule HivexWorker.Handler do
 
   use GenServer
 
+  alias HivexWorker.Handlers.ImagesHandler
+
   @call_timeout 30_000
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
+  end
+
+  @doc """
+  Handles requests from queen.
+
+  Routes requests to the correct handler based on the `event` parameter.
+
+  ## Parameters
+
+   * `event`
+   * `request`
+   * `socket`
+
+  """
+  def handle_request(event, request, _socket) when event in ["pull_image", "build_image"] do
+    GenServer.cast(ImagesHandler, {event, request})
   end
 
   @doc """

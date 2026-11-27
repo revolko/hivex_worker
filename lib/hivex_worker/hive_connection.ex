@@ -7,6 +7,8 @@ defmodule HivexWorker.HiveConnection do
 
   require Logger
 
+  alias HivexWorker.Handler
+
   @topic_prefix "hive"
 
   def start_link(args) do
@@ -35,7 +37,17 @@ defmodule HivexWorker.HiveConnection do
       socket: socket
     )
 
-    {:ok, socket}
+    with :ok <- Handler.handle_request(event, message, socket) do
+      {:ok, socket}
+    else
+      {:error, reason} ->
+        Logger.error(
+          message: "Failed to handle request",
+          reason: reason
+        )
+
+        {:stop, reason, socket}
+    end
   end
 
   @impl Slipstream

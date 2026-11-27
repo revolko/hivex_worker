@@ -11,6 +11,7 @@ defmodule HivexWorker.Application do
     worker_key = Application.fetch_env!(:hivex_worker, :worker_key) |> Base.encode64()
 
     children = [
+      HivexWorker.Handlers.ImagesHandler,
       HivexWorker.Handler,
       {HivexWorker.HiveConnection,
        uri:
